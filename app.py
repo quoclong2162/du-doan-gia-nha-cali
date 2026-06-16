@@ -204,10 +204,10 @@ with tab1:
         met_c1, met_c2 = st.columns(2)
         with met_c1:
             st.metric(label="📊 Training Score (R²)", value=f"{base_metrics['train']:.4f}")
-            st.metric(label="📉 RMSE (Sai số tiền mặt thực tế)", value=f"${adjusted_rmse:,.2f}")
+            st.metric(label="📉 RMSE ", value=f"${adjusted_rmse:,.2f}")
         with met_c2:
             st.metric(label="🧪 Testing Score (R²)", value=f"{base_metrics['test']:.4f}")
-            st.metric(label="🎯 Accuracy (Độ chính xác thuật toán)", value=f"{accuracy_val:.2f}%")
+            st.metric(label="🎯 Accuracy ", value=f"{accuracy_val:.2f}%")
 
     with col_out:
         if btn_predict:
