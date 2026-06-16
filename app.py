@@ -208,20 +208,25 @@ with tab1:
             st.metric("GIÁ TRỊ ƯỚC TÍNH", f"${final_price:,.0f}", delta=f"{(he_so_thi_truong-1)*100:.1f}% vs. Gốc")
             
             st.markdown("#### 1. Bản đồ phân bổ vị trí và giá nhà toàn bang California")
-    fig1 = px.scatter_mapbox(
-        df_visual.sample(5000, random_state=42) if len(df_visual) > 5000 else df_visual, 
-        lat='latitude', 
-        lon='longitude', 
+    fig1 = px.scatter(
+        df_visual.sample(4000, random_state=42) if len(df_visual) > 4000 else df_visual, 
+        x='longitude', 
+        y='latitude', 
         color='Gia_Nha', 
         size='Population',
         color_continuous_scale='jet', 
-        size_max=15, 
-        zoom=5,
-        mapbox_style="open-street-map",
-        hover_data={'Gia_Nha': ':.0f', 'MedInc': ':.2f', 'HouseAge': True},
-        title="Mật độ điểm chấm bất động sản tập trung vùng ven biển (Đỏ: Cao, Xanh: Thấp)"
+        size_max=12,
+        hover_name='ocean_proximity',
+        hover_data={'Gia_Nha': ':.0f', 'MedInc': ':.2f', 'HouseAge': True, 'latitude': False, 'longitude': False},
+        labels={'longitude': 'Kinh độ', 'latitude': 'Vĩ độ', 'Gia_Nha': 'Giá nhà ($)', 'Population': 'Dân số'},
+        title="Mật độ giá nhà theo tọa độ địa lý (Màu đỏ: Giá cao vùng ven biển, Màu xanh: Giá rẻ nội địa)"
     )
-    fig1.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    fig1.update_layout(
+        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)'),
+        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)'),
+        paper_bgcolor='rgba(255,255,255,0.9)',
+        plot_bgcolor='rgba(255,255,255,0.9)'
+    )
     st.plotly_chart(fig1, use_container_width=True)
 
 with tab2:
