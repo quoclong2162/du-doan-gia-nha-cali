@@ -160,6 +160,7 @@ lam_phat = st.sidebar.slider("Lạm phát kỳ vọng (%)", 0.0, 10.0, 3.5)
 nhu_cau = st.sidebar.select_slider("Cung - Cầu", options=[0.8, 0.9, 1.0, 1.1, 1.2], value=1.0)
 chi_so_vung = st.sidebar.selectbox("Khu vực kinh tế", [1.0, 1.1, 1.2, 1.3], format_func=lambda x: f"Mức độ phát triển: x{x}")
 
+# Tính toán hệ số thị trường động từ Sidebar
 he_so_thi_truong = nhu_cau * (1 + (lam_phat/100)) * chi_so_vung * (1 - (lai_suat - 7)/100)
 
 st.sidebar.markdown("---")
@@ -194,16 +195,19 @@ with tab1:
         st.markdown("---")
         st.subheader(f"📊 Đánh giá mô hình: {selected_model_name}")
         
-        current_metrics = model_metrics[selected_model_name]
-        accuracy_val = max(0.0, current_metrics['test'] * 100)
+        base_metrics = model_metrics[selected_model_name]
+        
+        # 🌟 ĐỘNG HOÁ RMSE: Sai số tiền mặt tự động nhân hệ số vĩ mô thay đổi trực tiếp theo Sidebar
+        adjusted_rmse = base_metrics['rmse'] * he_so_thi_truong
+        accuracy_val = max(0.0, base_metrics['test'] * 100)
         
         met_c1, met_c2 = st.columns(2)
         with met_c1:
-            st.metric(label="📊 Training Score (R²)", value=f"{current_metrics['train']:.4f}")
-            st.metric(label="📉 RMSE (Sai số tiền mặt)", value=f"${current_metrics['rmse']:,.2f}")
+            st.metric(label="📊 Training Score (R²)", value=f"{base_metrics['train']:.4f}")
+            st.metric(label="📉 RMSE (Sai số tiền mặt thực tế 2026)", value=f"${adjusted_rmse:,.2f}")
         with met_c2:
-            st.metric(label="🧪 Testing Score (R²)", value=f"{current_metrics['test']:.4f}")
-            st.metric(label="🎯 Accuracy (Độ chính xác)", value=f"{accuracy_val:.2f}%")
+            st.metric(label="🧪 Testing Score (R²)", value=f"{base_metrics['test']:.4f}")
+            st.metric(label="🎯 Accuracy (Độ chính xác toàn hệ thống)", value=f"{accuracy_val:.2f}%")
 
     with col_out:
         if btn_predict:
