@@ -5,10 +5,12 @@ import plotly.graph_objects as go
 import streamlit as st
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(page_title="ThichNhuanDat - 2026", layout="wide", page_icon="🏠")
@@ -110,40 +112,53 @@ def train_all_models(X, y):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # 1. XGBoost
     xgb = XGBRegressor(n_estimators=150, max_depth=6, learning_rate=0.1, random_state=42)
     xgb.fit(X_train, y_train)
     xgb_train_idx = xgb.score(X_train, y_train)
     xgb_test_idx = xgb.score(X_test, y_test)
     xgb_rmse = np.sqrt(mean_squared_error(y_test, xgb.predict(X_test)))
     
-    # 2. Decision Tree
+    rf = RandomForestRegressor(n_estimators=100, max_depth=12, random_state=42, n_jobs=-1)
+    rf.fit(X_train, y_train)
+    rf_train_idx = rf.score(X_train, y_train)
+    rf_test_idx = rf.score(X_test, y_test)
+    rf_rmse = np.sqrt(mean_squared_error(y_test, rf.predict(X_test)))
+    
     dt = DecisionTreeRegressor(max_depth=10, random_state=42)
     dt.fit(X_train, y_train)
     dt_train_idx = dt.score(X_train, y_train)
     dt_test_idx = dt.score(X_test, y_test)
     dt_rmse = np.sqrt(mean_squared_error(y_test, dt.predict(X_test)))
     
-    # 3. KNN
     knn = KNeighborsRegressor(n_neighbors=9)
     knn.fit(X_train_scaled, y_train)
     knn_train_idx = knn.score(X_train_scaled, y_train)
     knn_test_idx = knn.score(X_test_scaled, y_test)
     knn_rmse = np.sqrt(mean_squared_error(y_test, knn.predict(X_test_scaled)))
+
+    lr = LinearRegression()
+    lr.fit(X_train_scaled, y_train)
+    lr_train_idx = lr.score(X_train_scaled, y_train)
+    lr_test_idx = lr.score(X_test_scaled, y_test)
+    lr_rmse = np.sqrt(mean_squared_error(y_test, lr.predict(X_test_scaled)))
     
     kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
     kmeans.fit(X_train[['latitude', 'longitude']])
     
     models = {
         'XGBoost': xgb,
+        'Random Forest': rf,
         'Decision Tree': dt,
-        'KNN': knn
+        'KNN': knn,
+        'Linear Regression': lr
     }
     
     metrics = {
         'XGBoost': {'train': xgb_train_idx, 'test': xgb_test_idx, 'rmse': xgb_rmse},
+        'Random Forest': {'train': rf_train_idx, 'test': rf_test_idx, 'rmse': rf_rmse},
         'Decision Tree': {'train': dt_train_idx, 'test': dt_test_idx, 'rmse': dt_rmse},
-        'KNN': {'train': knn_train_idx, 'test': knn_test_idx, 'rmse': knn_rmse}
+        'KNN': {'train': knn_train_idx, 'test': knn_test_idx, 'rmse': knn_rmse},
+        'Linear Regression': {'train': lr_train_idx, 'test': lr_test_idx, 'rmse': lr_rmse}
     }
     
     return models, metrics, scaler, kmeans, X_test, X_test_scaled, y_test
@@ -160,7 +175,6 @@ lam_phat = st.sidebar.slider("Lạm phát kỳ vọng (%)", 0.0, 10.0, 3.5)
 nhu_cau = st.sidebar.select_slider("Cung - Cầu", options=[0.8, 0.9, 1.0, 1.1, 1.2], value=1.0)
 chi_so_vung = st.sidebar.selectbox("Khu vực kinh tế", [1.0, 1.1, 1.2, 1.3], format_func=lambda x: f"Mức độ phát triển: x{x}")
 
-# Tính toán hệ số thị trường động từ Sidebar
 he_so_thi_truong = nhu_cau * (1 + (lam_phat/100)) * chi_so_vung * (1 - (lai_suat - 7)/100)
 
 st.sidebar.markdown("---")
@@ -179,7 +193,7 @@ with tab1:
         st.subheader("📍 Thông số Bất động sản")
         c1, c2 = st.columns(2)
         with c1:
-            med_inc = st.number_input("Thu nhập khu vực ($10k)", 0.5, 15.0, 4.0, help="Thu nhập trung bình của cư dân xung quanh")
+            med_inc = st.number_input("Thu nhập khu vực ($10k)", 0.5, 15.0, 4.0, help="Thu nhập trung bình của cư dân")
             house_age = st.slider("Tuổi thọ công trình (năm)", 1, 52, 20)
             ave_rooms = st.number_input("Tổng số phòng (TB)", 1.0, 15.0, 5.0)
             ave_bedrms = st.number_input("Số phòng ngủ trung bình", 0.5, 5.0, 1.0)
@@ -196,8 +210,6 @@ with tab1:
         st.subheader(f"📊 Đánh giá mô hình: {selected_model_name}")
         
         base_metrics = model_metrics[selected_model_name]
-        
-        # 🌟 ĐỘNG HOÁ RMSE: Sai số tiền mặt tự động nhân hệ số vĩ mô thay đổi trực tiếp theo Sidebar
         adjusted_rmse = base_metrics['rmse'] * he_so_thi_truong
         accuracy_val = max(0.0, base_metrics['test'] * 100)
         
@@ -226,7 +238,8 @@ with tab1:
                 input_row[target_ocean_col] = 1
 
             active_model = models[selected_model_name]
-            if selected_model_name == 'KNN':
+            
+            if selected_model_name in ['KNN', 'Linear Regression']:
                 input_scaled = scaler.transform(input_row)
                 raw_price = active_model.predict(input_scaled)[0]
             else:
