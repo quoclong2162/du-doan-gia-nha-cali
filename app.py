@@ -220,8 +220,8 @@ with tab2:
     
     st.markdown("#### 1. Phân bổ vị trí địa lý của bất động sản")
     fig1 = px.scatter(df_visual.sample(3000, random_state=42), x='longitude', y='latitude', 
-                     color='Gia_Nha', size='Population', hover_data=['MedInc'],
-                     color_continuous_scale='jet', title="Bản đồ mật độ giá nhà tại California")
+                      color='Gia_Nha', size='Population', hover_data=['MedInc'],
+                      color_continuous_scale='jet', title="Bản đồ mật độ giá nhà tại California")
     st.plotly_chart(fig1, use_container_width=True)
     
     m1, m2 = st.columns(2)
@@ -242,4 +242,19 @@ with tab2:
     with m2:
         st.markdown("#### 3. Mức giá trung bình theo vị trí địa lý")
         ocean_price = df_visual.groupby('ocean_proximity')['Gia_Nha'].mean().reset_index()
-        fig3 = px.bar(ocean_price, x='ocean_proximity', y='median_house_value')  
+        fig3 = px.bar(ocean_price, x='ocean_proximity', y='Gia_Nha',
+                      labels={'ocean_proximity': 'Vị trí vùng vịnh', 'Gia_Nha': 'Giá nhà trung bình'},
+                      title="Mức giá trung bình phân theo vị trí")  
+        st.plotly_chart(fig3, use_container_width=True)
+
+with tab3:
+    st.subheader("📋 Dữ liệu mẫu & Phân cụm vị trí")
+    st.markdown("#### Dữ liệu trực quan hóa mẫu (10 dòng đầu)")
+    st.dataframe(df_visual.head(10), use_container_width=True)
+    
+    st.markdown("#### Phân cụm vị trí địa lý (K-Means)")
+    df_cluster = df_visual.copy()
+    df_cluster['Cluster'] = kmeans.predict(df_cluster[['latitude', 'longitude']]).astype(str)
+    fig_cluster = px.scatter(df_cluster.sample(3000, random_state=42), x='longitude', y='latitude', 
+                             color='Cluster', title="Phân cụm vị trí bất động sản theo tọa độ")
+    st.plotly_chart(fig_cluster, use_container_width=True)
