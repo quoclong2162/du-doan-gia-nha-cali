@@ -242,4 +242,4 @@ with tab2:
     with m2:
         st.markdown("#### 3. Mức giá trung bình theo vị trí địa lý")
         ocean_price = df_visual.groupby('ocean_proximity')['Gia_Nha'].mean().reset_index()
-        fig3 = px.bar(ocean_price, x='ocean_proximity', y  
+        fig3 = px.bar(ocean_price, x='ocean_proximity', y)  
