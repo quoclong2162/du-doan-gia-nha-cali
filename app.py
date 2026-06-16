@@ -227,18 +227,25 @@ with tab2:
         size='Population',
         color_continuous_scale='jet', 
         size_max=12,
-        height=500,
+        height=450,
         hover_name='ocean_proximity',
         hover_data={'Gia_Nha': ':.0f', 'MedInc': ':.2f', 'HouseAge': True, 'latitude': False, 'longitude': False},
         labels={'longitude': 'Kinh độ', 'latitude': 'Vĩ độ', 'Gia_Nha': 'Giá nhà ($)', 'Population': 'Dân số'},
-        title="Mật độ phân bổ giá trị bất động sản (Màu đỏ: Giá cao vùng sát biển, Màu xanh: Giá thấp vùng nội địa)"
+        title="Mật độ phân bổ giá trị bất động sản (Đỏ: Giá cao sát biển, Xanh: Giá thấp nội địa)"
     )
     fig1.update_layout(margin={"r":0,"t":40,"l":0,"b":0})
     st.plotly_chart(fig1, use_container_width=True)
     
-    m1, m2 = st.columns(2)
-    with m1:
+    st.markdown("---")
+    
+    row2_title_col1, row2_title_col2 = st.columns(2)
+    with row2_title_col1:
         st.markdown("#### 2. Tương quan giữa Thu nhập và Giá nhà")
+    with row2_title_col2:
+        st.markdown("#### 3. Ma trận hệ số tương quan tuyến tính (Correlation Matrix)")
+        
+    row2_plot_col1, row2_plot_col2 = st.columns(2)
+    with row2_plot_col1:
         fig2 = px.scatter(
             df_visual.sample(1500, random_state=42), 
             x='MedInc', 
@@ -246,52 +253,63 @@ with tab2:
             color='HouseAge', 
             trendline="ols", 
             trendline_color_override="darkred",
-            height=500,
-            labels={'MedInc': 'Thu nhập trung bình khu vực ($10k)', 'Gia_Nha': 'Giá trị nhà trung vị ($)', 'HouseAge': 'Tuổi nhà'},
-            title="Sức mua lớn tập trung ở nhóm cư dân thu nhập cao",
+            height=400,
+            labels={'MedInc': 'Thu nhập trung bình ($10k)', 'Gia_Nha': 'Giá nhà trung vị ($)', 'HouseAge': 'Tuổi nhà'},
+            title="Sức mua tập trung ở nhóm cư dân thu nhập cao",
             color_continuous_scale="Cividis"
         )
+        fig2.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         st.plotly_chart(fig2, use_container_width=True)
         
-        st.markdown("#### 4. Phân phối chi tiết giá nhà & Điểm ngoại lai trần")
-        fig4 = px.histogram(
-            df_visual, 
-            x='Gia_Nha', 
-            marginal="box",
-            height=500,
-            labels={'Gia_Nha': 'Giá nhà ($)'}, 
-            color_discrete_sequence=['#FF9E2C'],
-            title="Biểu đồ phân phối tần suất tích lũy giá trị tài sản"
-        )
-        st.plotly_chart(fig4, use_container_width=True)
-
-    with m2:
-        st.markdown("#### 3. Ma trận hệ số tương quan tuyến tính (Correlation Matrix)")
+    with row2_plot_col2:
         corr_cols = ['Gia_Nha', 'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup']
         corr_matrix = df_visual[corr_cols].corr()
-        
         fig_corr = px.imshow(
             corr_matrix,
             text_auto=".2f",
             color_continuous_scale='RdBu_r',
-            height=500,
+            height=400,
             aspect="auto",
-            title="Đo lường mức độ ảnh hưởng của các biến đầu vào tới Giá Nhà"
+            title="Mức độ ảnh hưởng của các biến đầu vào tới Giá Nhà"
         )
+        fig_corr.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         st.plotly_chart(fig_corr, use_container_width=True)
-
+        
+    st.markdown("---")
+    
+    row3_title_col1, row3_title_col2 = st.columns(2)
+    with row3_title_col1:
+        st.markdown("#### 4. Phân phối chi tiết giá nhà & Điểm ngoại lai trần")
+    with row3_title_col2:
         st.markdown("#### 5. Mức giá trung bình phân loại theo Vị trí địa lý")
+        
+    row3_plot_col1, row3_plot_col2 = st.columns(2)
+    with row3_plot_col1:
+        fig4 = px.histogram(
+            df_visual, 
+            x='Gia_Nha', 
+            marginal="box",
+            height=400,
+            labels={'Gia_Nha': 'Giá nhà ($)'}, 
+            color_discrete_sequence=['#FF9E2C'],
+            title="Biểu đồ phân phối tần suất tích lũy giá trị tài sản"
+        )
+        fig4.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
+        st.plotly_chart(fig4, use_container_width=True)
+        
+    with row3_plot_col2:
         ocean_price = df_visual.groupby('ocean_proximity')['Gia_Nha'].mean().reset_index().sort_values(by='Gia_Nha', ascending=False)
         fig3 = px.bar(
             ocean_price, 
             x='ocean_proximity', 
             y='Gia_Nha',
             color='Gia_Nha',
-            height=500,
-            labels={'ocean_proximity': 'Vị trí địa lý vùng ven', 'Gia_Nha': 'Giá nhà trung bình ($)'},
-            title="Sự chênh lệch lớn giữa khu vực nội địa (Inland) và các vùng giáp biển",
+            height=400,
+            labels={'ocean_proximity': 'Vị trí vùng vịnh', 'Gia_Nha': 'Giá nhà trung bình ($)'},
+            title="Sự chênh lệch lớn giữa khu vực nội địa và vùng giáp biển",
             color_continuous_scale="Turbo"
         )
+        fig3.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         st.plotly_chart(fig3, use_container_width=True)
 
 with tab3:
