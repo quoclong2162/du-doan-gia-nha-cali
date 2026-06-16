@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -102,12 +102,6 @@ def get_clean_data():
 
 df, feature_names, df_visual = get_clean_data()
 
-ten_tieng_viet = {
-    'MedInc': 'Thu nhập TB', 'HouseAge': 'Tuổi nhà', 'AveRooms': 'Số phòng TB',
-    'AveBedrms': 'Phòng ngủ TB', 'Population': 'Dân số', 'AveOccup': 'Số người/Hộ',
-    'latitude': 'Vĩ độ', 'longitude': 'Kinh độ', 'Gia_Nha': 'Giá nhà'
-}
-
 @st.cache_resource
 def train_all_models(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -116,14 +110,26 @@ def train_all_models(X, y):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
+    # 1. XGBoost
     xgb = XGBRegressor(n_estimators=150, max_depth=6, learning_rate=0.1, random_state=42)
     xgb.fit(X_train, y_train)
+    xgb_train_idx = xgb.score(X_train, y_train)
+    xgb_test_idx = xgb.score(X_test, y_test)
+    xgb_rmse = np.sqrt(mean_squared_error(y_test, xgb.predict(X_test)))
     
+    # 2. Decision Tree
     dt = DecisionTreeRegressor(max_depth=10, random_state=42)
     dt.fit(X_train, y_train)
+    dt_train_idx = dt.score(X_train, y_train)
+    dt_test_idx = dt.score(X_test, y_test)
+    dt_rmse = np.sqrt(mean_squared_error(y_test, dt.predict(X_test)))
     
+    # 3. KNN
     knn = KNeighborsRegressor(n_neighbors=9)
     knn.fit(X_train_scaled, y_train)
+    knn_train_idx = knn.score(X_train_scaled, y_train)
+    knn_test_idx = knn.score(X_test_scaled, y_test)
+    knn_rmse = np.sqrt(mean_squared_error(y_test, knn.predict(X_test_scaled)))
     
     kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
     kmeans.fit(X_train[['latitude', 'longitude']])
@@ -134,11 +140,17 @@ def train_all_models(X, y):
         'KNN': knn
     }
     
-    return models, scaler, kmeans, X_test, X_test_scaled, y_test
+    metrics = {
+        'XGBoost': {'train': xgb_train_idx, 'test': xgb_test_idx, 'rmse': xgb_rmse},
+        'Decision Tree': {'train': dt_train_idx, 'test': dt_test_idx, 'rmse': dt_rmse},
+        'KNN': {'train': knn_train_idx, 'test': knn_test_idx, 'rmse': knn_rmse}
+    }
+    
+    return models, metrics, scaler, kmeans, X_test, X_test_scaled, y_test
 
 X = df[feature_names]
 y = df['Gia_Nha']
-models, scaler, kmeans, X_test, X_test_scaled, y_test = train_all_models(X, y)
+models, model_metrics, scaler, kmeans, X_test, X_test_scaled, y_test = train_all_models(X, y)
 
 st.sidebar.markdown("## 🌐 Chỉ số Kinh tế 2026")
 st.sidebar.info("Các yếu tố ngoại vi ảnh hưởng đến giá trị tài sản.")
@@ -178,6 +190,20 @@ with tab1:
         
         ocean_pos = st.selectbox("Vị trí so với biển:", ['INLAND', '<1H OCEAN', 'NEAR OCEAN', 'NEAR BAY', 'ISLAND'])
         btn_predict = st.button("🚀 TÍNH TOÁN GIÁ TRỊ", use_container_width=True)
+
+        st.markdown("---")
+        st.subheader(f"📊 Đánh giá mô hình: {selected_model_name}")
+        
+        current_metrics = model_metrics[selected_model_name]
+        accuracy_val = max(0.0, current_metrics['test'] * 100)
+        
+        met_c1, met_c2 = st.columns(2)
+        with met_c1:
+            st.metric(label="📊 Training Score (R²)", value=f"{current_metrics['train']:.4f}")
+            st.metric(label="📉 RMSE (Sai số tiền mặt)", value=f"${current_metrics['rmse']:,.2f}")
+        with met_c2:
+            st.metric(label="🧪 Testing Score (R²)", value=f"{current_metrics['test']:.4f}")
+            st.metric(label="🎯 Accuracy (Độ chính xác)", value=f"{accuracy_val:.2f}%")
 
     with col_out:
         if btn_predict:
