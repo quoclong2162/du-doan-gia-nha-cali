@@ -207,7 +207,18 @@ with tab1:
             
             st.metric("GIÁ TRỊ ƯỚC TÍNH", f"${final_price:,.0f}", delta=f"{(he_so_thi_truong-1)*100:.1f}% vs. Gốc")
             
-            st.markdown("#### 1. Bản đồ phân bổ vị trí và giá nhà toàn bang California")
+            st.markdown(f"""
+            - **Thuật toán đang sử dụng:** `{selected_model_name}`
+            - **Giá gốc mô hình:** `${raw_price:,.0f}`
+            - **Điều chỉnh thị trường:** `x{he_so_thi_truong:.2f}`
+            - **Gợi ý vay:** Trả hàng tháng ước tính `${(final_price * 0.006):,.2f}` (30 năm, lãi suất {lai_suat}%)
+            """)
+            st.map(pd.DataFrame({'lat': [lat], 'lon': [long]}))
+
+with tab2:
+    st.subheader("📊 Phân Tích Địa Lý & Tương Quan Thu Nhập")
+    
+    st.markdown("#### 1. Bản đồ phân bổ tọa độ và giá nhà toàn bang California")
     fig1 = px.scatter(
         df_visual.sample(4000, random_state=42) if len(df_visual) > 4000 else df_visual, 
         x='longitude', 
@@ -216,48 +227,26 @@ with tab1:
         size='Population',
         color_continuous_scale='jet', 
         size_max=12,
+        height=500,
         hover_name='ocean_proximity',
         hover_data={'Gia_Nha': ':.0f', 'MedInc': ':.2f', 'HouseAge': True, 'latitude': False, 'longitude': False},
         labels={'longitude': 'Kinh độ', 'latitude': 'Vĩ độ', 'Gia_Nha': 'Giá nhà ($)', 'Population': 'Dân số'},
-        title="Mật độ giá nhà theo tọa độ địa lý (Màu đỏ: Giá cao vùng ven biển, Màu xanh: Giá rẻ nội địa)"
-    )
-    fig1.update_layout(
-        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)'),
-        yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)'),
-        paper_bgcolor='rgba(255,255,255,0.9)',
-        plot_bgcolor='rgba(255,255,255,0.9)'
-    )
-    st.plotly_chart(fig1, use_container_width=True)
-
-with tab2:
-    st.subheader("📊 Phân Tích Địa Lý & Tương Quan Thu Nhập")
-    
-    st.markdown("#### 1. Bản đồ nhiệt phân bổ giá nhà toàn bang California")
-    fig1 = px.density_mapbox(
-        df_visual, 
-        lat='latitude', 
-        lon='longitude', 
-        z='Gia_Nha', 
-        radius=10,
-        center=dict(lat=36.7783, lon=-119.4179), 
-        zoom=5,
-        mapbox_style="stamen-terrain",
-        title="Mật độ phân bổ giá trị bất động sản tập trung vùng ven biển",
-        color_continuous_scale="Viridis"
+        title="Mật độ phân bổ giá trị bất động sản (Màu đỏ: Giá cao vùng sát biển, Màu xanh: Giá thấp vùng nội địa)"
     )
     fig1.update_layout(margin={"r":0,"t":40,"l":0,"b":0})
     st.plotly_chart(fig1, use_container_width=True)
     
     m1, m2 = st.columns(2)
     with m1:
-        st.markdown("#### 2. Phân tán mật độ tương quan giữa Thu nhập và Giá nhà")
+        st.markdown("#### 2. Tương quan giữa Thu nhập và Giá nhà")
         fig2 = px.scatter(
-            df_visual.sample(2000, random_state=42), 
+            df_visual.sample(1500, random_state=42), 
             x='MedInc', 
             y='Gia_Nha',
             color='HouseAge', 
             trendline="ols", 
             trendline_color_override="darkred",
+            height=500,
             labels={'MedInc': 'Thu nhập trung bình khu vực ($10k)', 'Gia_Nha': 'Giá trị nhà trung vị ($)', 'HouseAge': 'Tuổi nhà'},
             title="Sức mua lớn tập trung ở nhóm cư dân thu nhập cao",
             color_continuous_scale="Cividis"
@@ -269,6 +258,7 @@ with tab2:
             df_visual, 
             x='Gia_Nha', 
             marginal="box",
+            height=500,
             labels={'Gia_Nha': 'Giá nhà ($)'}, 
             color_discrete_sequence=['#FF9E2C'],
             title="Biểu đồ phân phối tần suất tích lũy giá trị tài sản"
@@ -284,6 +274,7 @@ with tab2:
             corr_matrix,
             text_auto=".2f",
             color_continuous_scale='RdBu_r',
+            height=500,
             aspect="auto",
             title="Đo lường mức độ ảnh hưởng của các biến đầu vào tới Giá Nhà"
         )
@@ -296,6 +287,7 @@ with tab2:
             x='ocean_proximity', 
             y='Gia_Nha',
             color='Gia_Nha',
+            height=500,
             labels={'ocean_proximity': 'Vị trí địa lý vùng ven', 'Gia_Nha': 'Giá nhà trung bình ($)'},
             title="Sự chênh lệch lớn giữa khu vực nội địa (Inland) và các vùng giáp biển",
             color_continuous_scale="Turbo"
@@ -310,6 +302,12 @@ with tab3:
     st.markdown("#### Phân cụm vị trí địa lý (K-Means)")
     df_cluster = df_visual.copy()
     df_cluster['Cluster'] = kmeans.predict(df_cluster[['latitude', 'longitude']]).astype(str)
-    fig_cluster = px.scatter(df_cluster.sample(3000, random_state=42), x='longitude', y='latitude', 
-                             color='Cluster', title="Phân cụm vị trí bất động sản theo tọa độ")
+    fig_cluster = px.scatter(
+        df_cluster.sample(3000, random_state=42), 
+        x='longitude', 
+        y='latitude', 
+        color='Cluster', 
+        height=550,
+        title="Phân cụm vị trí bất động sản theo tọa độ địa lý dựa trên mô hình K-Means"
+    )
     st.plotly_chart(fig_cluster, use_container_width=True)
