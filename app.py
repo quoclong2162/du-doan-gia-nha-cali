@@ -216,35 +216,76 @@ with tab1:
             st.map(pd.DataFrame({'lat': [lat], 'lon': [long]}))
 
 with tab2:
-    st.subheader("📊 Hiệu suất Mô hình & Đặc trưng")
+    st.subheader("📊 Phân Tích Địa Lý & Tương Quan Thu Nhập")
     
-    st.markdown("#### 1. Phân bổ vị trí địa lý của bất động sản")
-    fig1 = px.scatter(df_visual.sample(3000, random_state=42), x='longitude', y='latitude', 
-                      color='Gia_Nha', size='Population', hover_data=['MedInc'],
-                      color_continuous_scale='jet', title="Bản đồ mật độ giá nhà tại California")
+    st.markdown("#### 1. Bản đồ nhiệt phân bổ giá nhà toàn bang California")
+    fig1 = px.density_mapbox(
+        df_visual, 
+        lat='latitude', 
+        lon='longitude', 
+        z='Gia_Nha', 
+        radius=10,
+        center=dict(lat=36.7783, lon=-119.4179), 
+        zoom=5,
+        mapbox_style="stamen-terrain",
+        title="Mật độ phân bổ giá trị bất động sản tập trung vùng ven biển",
+        color_continuous_scale="Viridis"
+    )
+    fig1.update_layout(margin={"r":0,"t":40,"l":0,"b":0})
     st.plotly_chart(fig1, use_container_width=True)
     
     m1, m2 = st.columns(2)
     with m1:
-        st.markdown("#### 2. Tương quan thu nhập và giá nhà")
-        fig2 = px.scatter(df_visual.sample(1000, random_state=42), x='MedInc', y='Gia_Nha', 
-                          trendline="ols", trendline_color_override="red",
-                          labels={'MedInc': 'Thu nhập trung bình', 'Gia_Nha': 'Giá nhà'},
-                          title="Biểu đồ phân tán giữa Thu nhập và Giá nhà")
+        st.markdown("#### 2. Phân tán mật độ tương quan giữa Thu nhập và Giá nhà")
+        fig2 = px.scatter(
+            df_visual.sample(2000, random_state=42), 
+            x='MedInc', 
+            y='Gia_Nha',
+            color='HouseAge', 
+            trendline="ols", 
+            trendline_color_override="darkred",
+            labels={'MedInc': 'Thu nhập trung bình khu vực ($10k)', 'Gia_Nha': 'Giá trị nhà trung vị ($)', 'HouseAge': 'Tuổi nhà'},
+            title="Sức mua lớn tập trung ở nhóm cư dân thu nhập cao",
+            color_continuous_scale="Cividis"
+        )
         st.plotly_chart(fig2, use_container_width=True)
         
-        st.markdown("#### 4. Phân phối tuổi thọ nhà")
-        fig4 = px.histogram(df_visual, x='HouseAge', nbins=30, 
-                            labels={'HouseAge': 'Tuổi thọ công trình (năm)'}, color_discrete_sequence=['#FF9E2C'],
-                            title="Tần suất xuất hiện theo tuổi thọ công trình")
+        st.markdown("#### 4. Phân phối chi tiết giá nhà & Điểm ngoại lai trần")
+        fig4 = px.histogram(
+            df_visual, 
+            x='Gia_Nha', 
+            marginal="box",
+            labels={'Gia_Nha': 'Giá nhà ($)'}, 
+            color_discrete_sequence=['#FF9E2C'],
+            title="Biểu đồ phân phối tần suất tích lũy giá trị tài sản"
+        )
         st.plotly_chart(fig4, use_container_width=True)
 
     with m2:
-        st.markdown("#### 3. Mức giá trung bình theo vị trí địa lý")
-        ocean_price = df_visual.groupby('ocean_proximity')['Gia_Nha'].mean().reset_index()
-        fig3 = px.bar(ocean_price, x='ocean_proximity', y='Gia_Nha',
-                      labels={'ocean_proximity': 'Vị trí vùng vịnh', 'Gia_Nha': 'Giá nhà trung bình'},
-                      title="Mức giá trung bình phân theo vị trí")  
+        st.markdown("#### 3. Ma trận hệ số tương quan tuyến tính (Correlation Matrix)")
+        corr_cols = ['Gia_Nha', 'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup']
+        corr_matrix = df_visual[corr_cols].corr()
+        
+        fig_corr = px.imshow(
+            corr_matrix,
+            text_auto=".2f",
+            color_continuous_scale='RdBu_r',
+            aspect="auto",
+            title="Đo lường mức độ ảnh hưởng của các biến đầu vào tới Giá Nhà"
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+        st.markdown("#### 5. Mức giá trung bình phân loại theo Vị trí địa lý")
+        ocean_price = df_visual.groupby('ocean_proximity')['Gia_Nha'].mean().reset_index().sort_values(by='Gia_Nha', ascending=False)
+        fig3 = px.bar(
+            ocean_price, 
+            x='ocean_proximity', 
+            y='Gia_Nha',
+            color='Gia_Nha',
+            labels={'ocean_proximity': 'Vị trí địa lý vùng ven', 'Gia_Nha': 'Giá nhà trung bình ($)'},
+            title="Sự chênh lệch lớn giữa khu vực nội địa (Inland) và các vùng giáp biển",
+            color_continuous_scale="Turbo"
+        )
         st.plotly_chart(fig3, use_container_width=True)
 
 with tab3:
