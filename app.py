@@ -181,7 +181,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("## 🤖 Thuật toán dự đoán")
 selected_model_name = st.sidebar.selectbox("Chọn mô hình lõi:", list(models.keys()))
 
-st.title("🏠 Hệ thống Định giá Bất động sản ở CALIFORNIA")
+st.title("🏠 Hệ thống Dự đoán giá Bất động sản ở CALIFORNIA")
 st.markdown("---")
 
 tab1, tab2, tab3 = st.tabs(["🎯 Dự đoán chuyên sâu", "📈 Phân tích thị trường", "📋 Dữ liệu mẫu & Phân cụm"])
